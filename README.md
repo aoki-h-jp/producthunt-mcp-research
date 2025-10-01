@@ -1,7 +1,4 @@
----
-title: Introduction
-description: Learn about producthunt-mcp-search and its capabilities
----
+# producthunt-mcp-search
 
 `producthunt-mcp-search` is a powerful MCP-based search platform for Product Hunt data with AI-powered natural language queries. Built with TypeScript and following modern software architecture principles, it provides a robust foundation for semantic search and data exploration through AI assistants.
 
