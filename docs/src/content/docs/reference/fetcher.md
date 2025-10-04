@@ -88,9 +88,27 @@ interface FetcherInstance {
 
 High-level service for data fetching operations.
 
+### FetchOptions
+
+Options interface for all fetch methods. All fetch methods retrieve a single batch of data.
+
+```typescript
+interface FetchOptions {
+  batchSize?: number;
+  startCursor?: string;
+}
+```
+
+**Properties:**
+
+- `batchSize` (`number`, optional) - Number of items to fetch per API request (default varies by method)
+- `startCursor` (`string`, optional) - Cursor to start fetching from (for pagination)
+
+---
+
 ### fetchPosts()
 
-Fetches posts from Product Hunt with pagination support.
+Fetches a single batch of posts from Product Hunt. For fetching multiple batches, call this method in a loop with the returned `nextCursor`.
 
 ```typescript
 async fetchPosts(options?: FetchOptions): AsyncResult<FetchResult<PostNode>, Error>
@@ -98,10 +116,8 @@ async fetchPosts(options?: FetchOptions): AsyncResult<FetchResult<PostNode>, Err
 
 **Parameters:**
 
-- `options.maxItems` (`number`, optional) - Maximum posts to fetch (default: 100)
-- `options.batchSize` (`number`, optional) - Posts per request (default: 10)
+- `options.batchSize` (`number`, optional) - Posts per request (default: 5)
 - `options.startCursor` (`string`, optional) - Pagination cursor
-- `options.unlimited` (`boolean`, optional) - Fetch all posts (ignores maxItems)
 
 **Returns:**
 
@@ -111,10 +127,10 @@ async fetchPosts(options?: FetchOptions): AsyncResult<FetchResult<PostNode>, Err
 
 ```typescript
 interface FetchResult<T> {
-  data: T[];
-  hasMore: boolean;
-  nextCursor?: string;
-  totalFetched: number;
+  data: T[];           // Posts in this batch
+  hasMore: boolean;    // Whether more posts are available
+  nextCursor?: string; // Cursor for next batch
+  totalFetched: number; // Number of posts in this batch
 }
 ```
 
@@ -122,7 +138,7 @@ interface FetchResult<T> {
 
 ### fetchTopics()
 
-Fetches topics from Product Hunt with pagination support.
+Fetches a single batch of topics from Product Hunt. For fetching multiple batches, call this method in a loop with the returned `nextCursor`.
 
 ```typescript
 async fetchTopics(options?: FetchOptions): AsyncResult<FetchResult<TopicNode>, Error>
@@ -130,10 +146,8 @@ async fetchTopics(options?: FetchOptions): AsyncResult<FetchResult<TopicNode>, E
 
 **Parameters:**
 
-- `options.maxItems` (`number`, optional) - Maximum topics to fetch (default: 10000)
 - `options.batchSize` (`number`, optional) - Topics per request (default: 10)
 - `options.startCursor` (`string`, optional) - Pagination cursor
-- `options.unlimited` (`boolean`, optional) - Fetch all topics (ignores maxItems)
 
 **Returns:**
 
@@ -143,7 +157,7 @@ async fetchTopics(options?: FetchOptions): AsyncResult<FetchResult<TopicNode>, E
 
 ### fetchCollections()
 
-Fetches collections from Product Hunt with pagination support.
+Fetches a single batch of collections from Product Hunt. For fetching multiple batches, call this method in a loop with the returned `nextCursor`.
 
 ```typescript
 async fetchCollections(options?: FetchOptions): AsyncResult<FetchResult<CollectionNode>, Error>
@@ -151,10 +165,8 @@ async fetchCollections(options?: FetchOptions): AsyncResult<FetchResult<Collecti
 
 **Parameters:**
 
-- `options.maxItems` (`number`, optional) - Maximum collections to fetch (default: 10000)
 - `options.batchSize` (`number`, optional) - Collections per request (default: 10)
 - `options.startCursor` (`string`, optional) - Pagination cursor
-- `options.unlimited` (`boolean`, optional) - Fetch all collections (ignores maxItems)
 
 **Returns:**
 

@@ -48,68 +48,80 @@ export async function syncPosts(
   try {
     logger.info('Starting posts synchronization', { options });
 
-    // 1. Fetch post data (including comments)
-    const fetchResult = await fetcher.service.fetchPosts({
-      maxItems: options.maxItems || 100,
-      batchSize: options.batchSize || 10,
-    });
-
-    if (!fetchResult.success) {
-      return failure(new Error(`Failed to fetch posts: ${fetchResult.error.message}`));
-    }
-
-    const postsData = fetchResult.data;
-    const postNodes = postsData.data;
-    stats.totalFetched = postsData.totalFetched;
-    stats.nextCursor = postsData.nextCursor; // Store cursor for resuming
-    stats.postsProcessed = postNodes.length;
-
-    logger.info('Posts fetched successfully', {
-      count: postNodes.length,
-      totalFetched: stats.totalFetched,
-      nextCursor: stats.nextCursor,
-    });
-
-    // 2. Convert PostNode → DbPost
+    let cursor = options.cursor ?? null;
+    let hasMore = true;
+    const maxItems = options.maxItems || 100;
+    const batchSize = options.batchSize || 5;
     const mapper = new Mapper();
-    const dbPosts = mapper.fromPostNodes(postNodes);
-
-    logger.info('Posts converted to database format', {
-      count: dbPosts.length,
-    });
-
-    // 3. Save to repository layer (comments are automatically included)
-    const saveResult = await repository.repository.savePosts(dbPosts);
-
-    if (saveResult.success) {
-      stats.totalSaved = saveResult.data.total;
-
-      logger.info('Posts saved successfully', {
-        totalSaved: stats.totalSaved,
-        inserted: saveResult.data.inserted,
-        errors: saveResult.data.errors,
-      });
-    } else {
-      stats.errors++;
-      logger.warn('Failed to save posts', {
-        error: saveResult.error.message,
-      });
-    }
-
-    // 4. Update user statistics
+    const cursorManager = new CursorManager(logger);
     const uniqueUsers = new Set<string>();
-    postNodes.forEach((post) => {
-      if (post.user?.id) {
-        uniqueUsers.add(post.user.id);
-      }
-    });
-    stats.usersProcessed = uniqueUsers.size;
 
-    // 5. Save cursor for resumption
-    if (stats.nextCursor) {
-      const cursorManager = new CursorManager(logger);
-      await cursorManager.updateCursor('posts', stats.nextCursor);
-      logger.info('Posts cursor saved for resumption', { cursor: stats.nextCursor });
+    // Loop to fetch and save batches
+    while (hasMore && stats.totalFetched < maxItems) {
+      // 1. Fetch one batch
+      const fetchResult = await fetcher.service.fetchPosts({
+        batchSize: Math.min(batchSize, maxItems - stats.totalFetched),
+        startCursor: cursor ?? undefined,
+      });
+
+      if (!fetchResult.success) {
+        return failure(new Error(`Failed to fetch posts: ${fetchResult.error.message}`));
+      }
+
+      const postsData = fetchResult.data;
+      const postNodes = postsData.data;
+      
+      if (postNodes.length === 0) {
+        break;
+      }
+
+      logger.info('Posts batch fetched', {
+        count: postNodes.length,
+        cursor: cursor,
+        nextCursor: postsData.nextCursor,
+      });
+
+      // 2. Convert PostNode → DbPost
+      const dbPosts = mapper.fromPostNodes(postNodes);
+
+      // 3. Save to repository layer (comments are automatically included)
+      const saveResult = await repository.repository.savePosts(dbPosts);
+
+      if (saveResult.success) {
+        stats.totalSaved += saveResult.data.total;
+        stats.totalFetched += postNodes.length;
+        stats.postsProcessed = (stats.postsProcessed || 0) + postNodes.length;
+        
+        logger.info('Posts batch saved', {
+          saved: saveResult.data.total,
+          totalSaved: stats.totalSaved,
+          totalFetched: stats.totalFetched,
+        });
+      } else {
+        stats.errors++;
+        logger.warn('Failed to save posts batch', {
+          error: saveResult.error.message,
+        });
+      }
+
+      // 4. Update user statistics
+      postNodes.forEach((post) => {
+        if (post.user?.id) {
+          uniqueUsers.add(post.user.id);
+        }
+      });
+      stats.usersProcessed = uniqueUsers.size;
+
+      // 5. Update cursor and save for resumption
+      cursor = postsData.nextCursor ?? null;
+      hasMore = postsData.hasMore;
+      stats.nextCursor = cursor ?? undefined;
+      
+      // Save cursor after each batch
+      if (cursor) {
+        await cursorManager.updateCursor('posts', cursor);
+        logger.info('Posts cursor saved', { cursor });
+      }
     }
 
     // Complete

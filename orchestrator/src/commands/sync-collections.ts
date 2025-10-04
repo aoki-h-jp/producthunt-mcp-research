@@ -45,58 +45,70 @@ export async function syncCollections(
   try {
     logger.info('Starting collections synchronization');
 
-    // 1. Fetch all collection data
-    const fetchResult = await fetcher.service.fetchCollections({
-      maxItems: options.maxItems,
-      batchSize: options.batchSize,
-    });
-
-    if (!fetchResult.success) {
-      return failure(new Error(`Failed to fetch collections: ${fetchResult.error.message}`));
-    }
-
-    const collectionsData = fetchResult.data;
-    const collectionNodes = collectionsData.data;
-    stats.totalFetched = collectionsData.totalFetched;
-    stats.nextCursor = collectionsData.nextCursor; // Store cursor for resuming
-
-    logger.info('Collections fetched successfully', {
-      count: collectionNodes.length,
-      totalFetched: stats.totalFetched,
-      nextCursor: stats.nextCursor,
-    });
-
-    // 2. Convert CollectionNode → DbCollection
+    let cursor = options.cursor ?? null;
+    let hasMore = true;
+    const maxItems = options.maxItems || 10000;
+    const batchSize = options.batchSize || 10;
     const mapper = new Mapper();
-    const dbCollections = mapper.fromCollectionNodes(collectionNodes);
+    const cursorManager = new CursorManager(logger);
 
-    logger.info('Collections converted to database format', {
-      count: dbCollections.length,
-    });
-
-    // 3. Save to repository layer
-    const saveResult = await repository.repository.saveCollections(dbCollections);
-
-    if (saveResult.success) {
-      stats.totalSaved = saveResult.data.total;
-
-      logger.info('Collections saved successfully', {
-        totalSaved: stats.totalSaved,
-        inserted: saveResult.data.inserted,
-        errors: saveResult.data.errors,
+    // Loop to fetch and save batches
+    while (hasMore && stats.totalFetched < maxItems) {
+      // 1. Fetch one batch
+      const fetchResult = await fetcher.service.fetchCollections({
+        batchSize: Math.min(batchSize, maxItems - stats.totalFetched),
+        startCursor: cursor ?? undefined,
       });
-    } else {
-      stats.errors++;
-      logger.warn('Failed to save collections', {
-        error: saveResult.error.message,
-      });
-    }
 
-    // 4. Save cursor for resumption
-    if (stats.nextCursor) {
-      const cursorManager = new CursorManager(logger);
-      await cursorManager.updateCursor('collections', stats.nextCursor);
-      logger.info('Collections cursor saved for resumption', { cursor: stats.nextCursor });
+      if (!fetchResult.success) {
+        return failure(new Error(`Failed to fetch collections: ${fetchResult.error.message}`));
+      }
+
+      const collectionsData = fetchResult.data;
+      const collectionNodes = collectionsData.data;
+      
+      if (collectionNodes.length === 0) {
+        break;
+      }
+
+      logger.info('Collections batch fetched', {
+        count: collectionNodes.length,
+        cursor: cursor,
+        nextCursor: collectionsData.nextCursor,
+      });
+
+      // 2. Convert CollectionNode → DbCollection
+      const dbCollections = mapper.fromCollectionNodes(collectionNodes);
+
+      // 3. Save to repository layer
+      const saveResult = await repository.repository.saveCollections(dbCollections);
+
+      if (saveResult.success) {
+        stats.totalSaved += saveResult.data.total;
+        stats.totalFetched += collectionNodes.length;
+        
+        logger.info('Collections batch saved', {
+          saved: saveResult.data.total,
+          totalSaved: stats.totalSaved,
+          totalFetched: stats.totalFetched,
+        });
+      } else {
+        stats.errors++;
+        logger.warn('Failed to save collections batch', {
+          error: saveResult.error.message,
+        });
+      }
+
+      // 4. Update cursor and save for resumption
+      cursor = collectionsData.nextCursor ?? null;
+      hasMore = collectionsData.hasMore;
+      stats.nextCursor = cursor ?? undefined;
+      
+      // Save cursor after each batch
+      if (cursor) {
+        await cursorManager.updateCursor('collections', cursor);
+        logger.info('Collections cursor saved', { cursor });
+      }
     }
 
     // Complete

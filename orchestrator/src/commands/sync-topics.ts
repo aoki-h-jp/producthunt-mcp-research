@@ -45,58 +45,70 @@ export async function syncTopics(
   try {
     logger.info('Starting topics synchronization');
 
-    // 1. Fetch all topic data
-    const fetchResult = await fetcher.service.fetchTopics({
-      maxItems: options.maxItems,
-      batchSize: options.batchSize,
-    });
-
-    if (!fetchResult.success) {
-      return failure(new Error(`Failed to fetch topics: ${fetchResult.error.message}`));
-    }
-
-    const topicsData = fetchResult.data;
-    const topicNodes = topicsData.data;
-    stats.totalFetched = topicsData.totalFetched;
-    stats.nextCursor = topicsData.nextCursor; // Store cursor for resuming
-
-    logger.info('Topics fetched successfully', {
-      count: topicNodes.length,
-      totalFetched: stats.totalFetched,
-      nextCursor: stats.nextCursor,
-    });
-
-    // 2. Convert TopicNode → DbTopic
+    let cursor = options.cursor ?? null;
+    let hasMore = true;
+    const maxItems = options.maxItems || 10000;
+    const batchSize = options.batchSize || 10;
     const mapper = new Mapper();
-    const dbTopics = mapper.fromTopicNodes(topicNodes);
+    const cursorManager = new CursorManager(logger);
 
-    logger.info('Topics converted to database format', {
-      count: dbTopics.length,
-    });
-
-    // 3. Save to repository layer
-    const saveResult = await repository.repository.saveTopics(dbTopics);
-
-    if (saveResult.success) {
-      stats.totalSaved = saveResult.data.total;
-
-      logger.info('Topics saved successfully', {
-        totalSaved: stats.totalSaved,
-        inserted: saveResult.data.inserted,
-        errors: saveResult.data.errors,
+    // Loop to fetch and save batches
+    while (hasMore && stats.totalFetched < maxItems) {
+      // 1. Fetch one batch
+      const fetchResult = await fetcher.service.fetchTopics({
+        batchSize: Math.min(batchSize, maxItems - stats.totalFetched),
+        startCursor: cursor ?? undefined,
       });
-    } else {
-      stats.errors++;
-      logger.warn('Failed to save topics', {
-        error: saveResult.error.message,
-      });
-    }
 
-    // 4. Save cursor for resumption
-    if (stats.nextCursor) {
-      const cursorManager = new CursorManager(logger);
-      await cursorManager.updateCursor('topics', stats.nextCursor);
-      logger.info('Topics cursor saved for resumption', { cursor: stats.nextCursor });
+      if (!fetchResult.success) {
+        return failure(new Error(`Failed to fetch topics: ${fetchResult.error.message}`));
+      }
+
+      const topicsData = fetchResult.data;
+      const topicNodes = topicsData.data;
+      
+      if (topicNodes.length === 0) {
+        break;
+      }
+
+      logger.info('Topics batch fetched', {
+        count: topicNodes.length,
+        cursor: cursor,
+        nextCursor: topicsData.nextCursor,
+      });
+
+      // 2. Convert TopicNode → DbTopic
+      const dbTopics = mapper.fromTopicNodes(topicNodes);
+
+      // 3. Save to repository layer
+      const saveResult = await repository.repository.saveTopics(dbTopics);
+
+      if (saveResult.success) {
+        stats.totalSaved += saveResult.data.total;
+        stats.totalFetched += topicNodes.length;
+        
+        logger.info('Topics batch saved', {
+          saved: saveResult.data.total,
+          totalSaved: stats.totalSaved,
+          totalFetched: stats.totalFetched,
+        });
+      } else {
+        stats.errors++;
+        logger.warn('Failed to save topics batch', {
+          error: saveResult.error.message,
+        });
+      }
+
+      // 4. Update cursor and save for resumption
+      cursor = topicsData.nextCursor ?? null;
+      hasMore = topicsData.hasMore;
+      stats.nextCursor = cursor ?? undefined;
+      
+      // Save cursor after each batch
+      if (cursor) {
+        await cursorManager.updateCursor('topics', cursor);
+        logger.info('Topics cursor saved', { cursor });
+      }
     }
 
     // Complete

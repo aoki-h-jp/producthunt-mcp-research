@@ -76,7 +76,7 @@ All sync functions (`syncAll`, `syncPosts`, `syncTopics`, `syncCollections`) aut
 
 ### syncPosts()
 
-Synchronizes Product Hunt posts (including comments).
+Synchronizes Product Hunt posts (including comments) in batches. Fetches posts batch-by-batch, saves each batch to Qdrant, and updates the cursor after each batch.
 
 ```typescript
 async function syncPosts(
@@ -91,22 +91,27 @@ async function syncPosts(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 5, maxItems default: 100)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
 
 `AsyncResult<SyncStats, Error>` - Result with sync statistics
 
-**Automatic Resumption:**
+**Batch Processing:**
 
-Automatically resumes from the last saved cursor position. The `nextCursor` field in the returned statistics indicates the position for the next sync operation.
+1. Fetches one batch of posts (default: 5 items)
+2. Saves batch to Qdrant
+3. Updates cursor in `orchestrator/data/sync-cursors.json`
+4. Repeats until `maxItems` reached or no more data
+
+If interrupted, the next run will resume from the last saved cursor.
 
 ---
 
 ### syncTopics()
 
-Synchronizes all Product Hunt topics.
+Synchronizes Product Hunt topics in batches. Fetches topics batch-by-batch, saves each batch to Qdrant, and updates the cursor after each batch.
 
 ```typescript
 async function syncTopics(
@@ -121,22 +126,27 @@ async function syncTopics(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 10000)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
 
 `AsyncResult<SyncStats, Error>` - Result with sync statistics
 
-**Automatic Resumption:**
+**Batch Processing:**
 
-Automatically resumes from the last saved cursor position. The `nextCursor` field in the returned statistics indicates the position for the next sync operation.
+1. Fetches one batch of topics (default: 10 items)
+2. Saves batch to Qdrant
+3. Updates cursor in `orchestrator/data/sync-cursors.json`
+4. Repeats until `maxItems` reached or no more data
+
+If interrupted, the next run will resume from the last saved cursor.
 
 ---
 
 ### syncCollections()
 
-Synchronizes all Product Hunt collections.
+Synchronizes Product Hunt collections in batches. Fetches collections batch-by-batch, saves each batch to Qdrant, and updates the cursor after each batch.
 
 ```typescript
 async function syncCollections(
@@ -151,16 +161,21 @@ async function syncCollections(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 10000)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
 
 `AsyncResult<SyncStats, Error>` - Result with sync statistics
 
-**Automatic Resumption:**
+**Batch Processing:**
 
-Automatically resumes from the last saved cursor position. The `nextCursor` field in the returned statistics indicates the position for the next sync operation.
+1. Fetches one batch of collections (default: 10 items)
+2. Saves batch to Qdrant
+3. Updates cursor in `orchestrator/data/sync-cursors.json`
+4. Repeats until `maxItems` reached or no more data
+
+If interrupted, the next run will resume from the last saved cursor.
 
 ## Types
 
@@ -190,15 +205,24 @@ Options for controlling synchronization behavior.
 interface SyncOptions {
   batchSize?: number;
   maxItems?: number;
+  cursor?: string | null;
   onProgress?: (progress: number, message: string) => void;
 }
 ```
 
 **Properties:**
 
-- `batchSize` (optional) - Number of items per API request (default: 10)
-- `maxItems` (optional) - Maximum items to fetch (default: 100)
+- `batchSize` (optional) - Number of items per API request (default varies by type: topics/collections=10, posts=5)
+- `maxItems` (optional) - Maximum items to fetch (default varies by type)
+- `cursor` (optional) - Cursor for pagination (null = start from beginning, undefined = no cursor)
 - `onProgress` (optional) - Callback for progress updates
+
+**Batch Processing:**
+
+All sync functions fetch data in batches and save to Qdrant after each batch. This means:
+- Progress is saved incrementally (cursor is updated after each batch)
+- Interruptions are safe - resume from the last saved cursor
+- Memory usage is controlled - only one batch is in memory at a time
 
 ---
 

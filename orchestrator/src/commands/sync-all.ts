@@ -92,6 +92,7 @@ export async function syncAll(
         const topicsResult = await syncTopics(fetcher, repository, {
           maxItems: Math.min(batchSize, itemsPerType - topicsFetched),
           batchSize: Math.min(batchSize, itemsPerType - topicsFetched),
+          cursor: topicsCursor,
         }, logger);
 
         if (topicsResult.success) {
@@ -130,6 +131,7 @@ export async function syncAll(
         const collectionsResult = await syncCollections(fetcher, repository, {
           maxItems: Math.min(batchSize, itemsPerType - collectionsFetched),
           batchSize: Math.min(batchSize, itemsPerType - collectionsFetched),
+          cursor: collectionsCursor,
         }, logger);
 
         if (collectionsResult.success) {
@@ -168,6 +170,7 @@ export async function syncAll(
         const postsResult = await syncPosts(fetcher, repository, {
           maxItems: Math.min(batchSize, itemsPerType - postsFetched),
           batchSize: Math.min(batchSize, itemsPerType - postsFetched),
+          cursor: postsCursor,
         }, logger);
 
         if (postsResult.success) {

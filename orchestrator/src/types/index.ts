@@ -41,6 +41,9 @@ export interface SyncOptions {
   /** Maximum number of items to fetch */
   maxItems?: number;
 
+  /** Cursor for pagination (null = start from beginning, undefined = no cursor) */
+  cursor?: string | null;
+
   /** Progress callback */
   onProgress?: (progress: number, message: string) => void;
 }

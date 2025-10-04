@@ -157,35 +157,74 @@ async function main(): Promise<void> {
 
       case 'topics':
         logger.info('Running sync:topics command');
-        if (options.clearCursors) {
+        {
           const { CursorManager } = await import('./utils/cursor-manager.js');
           const cursorManager = new CursorManager(logger);
-          await cursorManager.clearCursors();
-          logger.info('Cursors cleared');
+          
+          if (options.clearCursors) {
+            await cursorManager.clearCursors();
+            logger.info('Cursors cleared');
+          }
+          
+          // Load saved cursor
+          const savedCursors = await cursorManager.loadCursors();
+          const cursor = savedCursors?.topics ?? null;
+          
+          result = await syncTopics(fetcher, repository, { ...options, cursor }, logger);
+          
+          // Save cursor for resumption
+          if (result.success && result.data.nextCursor) {
+            await cursorManager.updateCursor('topics', result.data.nextCursor);
+          }
         }
-        result = await syncTopics(fetcher, repository, options, logger);
         break;
 
       case 'collections':
         logger.info('Running sync:collections command');
-        if (options.clearCursors) {
+        {
           const { CursorManager } = await import('./utils/cursor-manager.js');
           const cursorManager = new CursorManager(logger);
-          await cursorManager.clearCursors();
-          logger.info('Cursors cleared');
+          
+          if (options.clearCursors) {
+            await cursorManager.clearCursors();
+            logger.info('Cursors cleared');
+          }
+          
+          // Load saved cursor
+          const savedCursors = await cursorManager.loadCursors();
+          const cursor = savedCursors?.collections ?? null;
+          
+          result = await syncCollections(fetcher, repository, { ...options, cursor }, logger);
+          
+          // Save cursor for resumption
+          if (result.success && result.data.nextCursor) {
+            await cursorManager.updateCursor('collections', result.data.nextCursor);
+          }
         }
-        result = await syncCollections(fetcher, repository, options, logger);
         break;
 
       case 'posts':
         logger.info('Running sync:posts command');
-        if (options.clearCursors) {
+        {
           const { CursorManager } = await import('./utils/cursor-manager.js');
           const cursorManager = new CursorManager(logger);
-          await cursorManager.clearCursors();
-          logger.info('Cursors cleared');
+          
+          if (options.clearCursors) {
+            await cursorManager.clearCursors();
+            logger.info('Cursors cleared');
+          }
+          
+          // Load saved cursor
+          const savedCursors = await cursorManager.loadCursors();
+          const cursor = savedCursors?.posts ?? null;
+          
+          result = await syncPosts(fetcher, repository, { ...options, cursor }, logger);
+          
+          // Save cursor for resumption
+          if (result.success && result.data.nextCursor) {
+            await cursorManager.updateCursor('posts', result.data.nextCursor);
+          }
         }
-        result = await syncPosts(fetcher, repository, options, logger);
         break;
 
       default:

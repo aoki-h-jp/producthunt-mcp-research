@@ -109,36 +109,39 @@ export interface FetchResult<T> {
 /**
  * Options for data fetching operations
  *
+ * All fetch methods retrieve a single batch of data. For fetching multiple batches,
+ * call the method in a loop with the returned nextCursor.
+ *
  * @interface FetchOptions
- * @property {number} [maxItems=100] - Maximum number of items to fetch
- * @property {number} [batchSize=10] - Number of items to fetch per API request
+ * @property {number} [batchSize] - Number of items to fetch per API request
  * @property {string} [startCursor] - Cursor to start fetching from (for pagination)
- * @property {boolean} [unlimited=false] - Whether to fetch unlimited items (ignores maxItems)
  *
  * @example
  * ```typescript
- * // Basic usage
- * const posts = await fetcher.service.fetchPosts({ maxItems: 50 });
+ * // Fetch a single batch
+ * const result = await fetcher.service.fetchPosts({ batchSize: 10 });
  *
- * // With pagination
- * const posts = await fetcher.service.fetchPosts({
- *   maxItems: 100,
- *   startCursor: 'cursor-string'
- * });
- *
- * // Unlimited fetching (use with caution)
- * const posts = await fetcher.service.fetchPosts({ unlimited: true });
+ * // Fetch with pagination
+ * let cursor = null;
+ * while (cursor !== undefined) {
+ *   const result = await fetcher.service.fetchPosts({
+ *     batchSize: 5,
+ *     startCursor: cursor ?? undefined
+ *   });
+ *   if (result.success) {
+ *     // Process batch
+ *     cursor = result.data.nextCursor ?? undefined;
+ *   } else {
+ *     break;
+ *   }
+ * }
  * ```
  */
 export interface FetchOptions {
-  /** Maximum number of items to fetch (default: 100) */
-  maxItems?: number | undefined;
-  /** Number of items to fetch per API request (default: 10) */
+  /** Number of items to fetch per API request (default varies by method) */
   batchSize?: number | undefined;
   /** Cursor to start fetching from (for pagination) */
   startCursor?: string | undefined;
-  /** Whether to fetch unlimited items (ignores maxItems) */
-  unlimited?: boolean | undefined;
 }
 
 // ============================================================================
@@ -194,148 +197,75 @@ export class FetcherService {
   // ============================================================================
 
   /**
-   * Fetches posts from Product Hunt API with pagination support
+   * Fetches a single batch of posts from Product Hunt API
    *
-   * Retrieves a list of posts from Product Hunt with built-in pagination and batching.
-   * Supports both limited and unlimited fetching modes.
-   *
-   * For single post fetching, use this method with maxItems: 1:
-   * ```typescript
-   * const result = await fetcher.service.fetchPosts({ maxItems: 1 });
-   * const post = result.success ? result.data.data[0] : null;
-   * ```
+   * Retrieves one batch of posts from Product Hunt. For fetching multiple batches,
+   * call this method in a loop with the returned nextCursor.
    *
    * @param options - Fetching options for posts
-   * @param options.maxItems - Maximum number of posts to fetch (default: 100)
-   * @param options.batchSize - Number of posts per API request (default: 10)
+   * @param options.batchSize - Number of posts per API request (default: 5)
    * @param options.startCursor - Cursor to start fetching from (for pagination)
-   * @param options.unlimited - Whether to fetch unlimited posts (ignores maxItems)
-   * @returns Promise resolving to fetch result with posts data
+   * @returns Promise resolving to fetch result with posts data and pagination info
    *
    * @example
    * ```typescript
-   * // Basic usage
-   * const result = await fetcher.service.fetchPosts();
+   * // Fetch a single batch
+   * const result = await fetcher.service.fetchPosts({ batchSize: 10 });
    * if (result.success) {
    *   console.log(`Fetched ${result.data.totalFetched} posts`);
+   *   console.log(`Has more: ${result.data.hasMore}`);
+   *   console.log(`Next cursor: ${result.data.nextCursor}`);
    * }
    *
-   * // With custom options
-   * const result = await fetcher.service.fetchPosts({
-   *   maxItems: 50,
-   *   batchSize: 20
-   * });
-   *
-   * // Fetch single post
-   * const result = await fetcher.service.fetchPosts({ maxItems: 1 });
-   * const post = result.success ? result.data.data[0] : null;
-   *
-   * // With pagination
-   * const result = await fetcher.service.fetchPosts({
-   *   maxItems: 100,
-   *   startCursor: 'cursor-string'
-   * });
-   * ```
-   *
-   * @example
-   * ```typescript
-   * // Error handling
-   * const result = await fetcher.service.fetchPosts();
-   * if (!result.success) {
-   *   console.error('Failed to fetch posts:', result.error.message);
-   *   return;
+   * // Fetch with pagination
+   * let cursor = null;
+   * while (cursor !== undefined) {
+   *   const result = await fetcher.service.fetchPosts({
+   *     batchSize: 5,
+   *     startCursor: cursor ?? undefined
+   *   });
+   *   if (result.success) {
+   *     // Process batch
+   *     result.data.data.forEach(post => console.log(post.name));
+   *     cursor = result.data.nextCursor ?? undefined;
+   *   } else {
+   *     break;
+   *   }
    * }
-   *
-   * // Process posts
-   * result.data.data.forEach(post => {
-   *   console.log(post.name, post.tagline);
-   * });
    * ```
    */
   async fetchPosts(options: FetchOptions = {}): AsyncResult<FetchResult<PostNode>, Error> {
     const {
-      maxItems = 100,
       batchSize = 5,
       startCursor,
-      unlimited = false,
     } = options;
 
-    // Relax limits significantly for unlimited mode
-    const effectiveMaxItems = unlimited ? Number.MAX_SAFE_INTEGER : maxItems;
-    const effectiveBatchSize = unlimited ? Math.max(batchSize, 50) : batchSize;
+    this.logger.info('Starting posts fetch (single batch)', { batchSize, startCursor });
 
-    this.logger.info('Starting posts fetch', {
-      maxItems: unlimited ? 'unlimited' : effectiveMaxItems,
-      batchSize: effectiveBatchSize,
-      startCursor,
-      unlimited
-    });
+    const variables: GetPostsQueryVariables = {
+      first: batchSize,
+      after: startCursor,
+    };
 
-    const posts: PostNode[] = [];
-    let cursor = startCursor;
-    let hasMore = true;
-    let totalFetched = 0;
-    let loopCount = 0;
+    const result = await this.client.posts.getPosts(variables);
 
-    while (hasMore && totalFetched < maxItems) {
-      loopCount++;
-      const remainingItems = maxItems - totalFetched;
-      const currentBatchSize = Math.min(batchSize, remainingItems);
-
-      const variables: GetPostsQueryVariables = {
-        first: currentBatchSize,
-        after: cursor,
-      };
-
-      this.logger.debug('Fetching posts batch', {
-        loopCount,
-        batchSize: currentBatchSize,
-        cursor,
-        totalFetched,
-        maxItems,
-        remainingItems
+    if (!result.success) {
+      this.logger.error('Failed to fetch posts batch', {
+        error: result.error.message,
       });
-
-      const result = await this.client.posts.getPosts(variables);
-
-      if (!result.success) {
-        this.logger.error('Failed to fetch posts batch', {
-          error: result.error.message,
-          totalFetched
-        });
-        return failure(result.error);
-      }
-
-      const response = result.data;
-      const batchPosts = response.posts.edges.map(edge => edge.node);
-
-      posts.push(...batchPosts);
-      totalFetched += batchPosts.length;
-
-      hasMore = response.posts.pageInfo.hasNextPage;
-      cursor = response.posts.pageInfo.endCursor || undefined;
-
-      this.logger.debug('Posts batch fetched', {
-        loopCount,
-        batchCount: batchPosts.length,
-        totalFetched,
-        hasMore,
-        nextCursor: cursor,
-        maxItems,
-        shouldContinue: hasMore && totalFetched < maxItems
-      });
-
-      // Exit if batch is empty
-      if (batchPosts.length === 0) {
-        hasMore = false;
-      }
+      return failure(result.error);
     }
+
+    const response = result.data;
+    const posts = response.posts.edges.map(edge => edge.node);
+    const hasMore = response.posts.pageInfo.hasNextPage;
+    const nextCursor = response.posts.pageInfo.endCursor || undefined;
 
     const fetchResult: FetchResult<PostNode> = {
       data: posts,
       hasMore,
-      nextCursor: cursor,
-      totalFetched,
+      nextCursor,
+      totalFetched: posts.length,
     };
 
     this.logger.info('Posts fetch completed', {
@@ -348,23 +278,24 @@ export class FetcherService {
   }
 
   /**
-   * Fetches all topics from Product Hunt API
+   * Fetches a single batch of topics from Product Hunt API
    *
-   * Retrieves all available topics from Product Hunt. Topics are relatively few
-   * in number, so this method uses larger batch sizes and higher limits by default.
+   * Retrieves one batch of topics from Product Hunt. For fetching multiple batches,
+   * call this method in a loop with the returned nextCursor.
    *
    * @param options - Fetching options for topics
-   * @param options.maxItems - Maximum number of topics to fetch (default: 10000)
-   * @param options.batchSize - Number of topics per API request (default: 100)
+   * @param options.batchSize - Number of topics per API request (default: 10)
    * @param options.startCursor - Cursor to start fetching from (for pagination)
-   * @returns Promise resolving to fetch result with topics data
+   * @returns Promise resolving to fetch result with topics data and pagination info
    *
    * @example
    * ```typescript
-   * // Fetch topics
-   * const result = await fetcher.service.fetchTopics();
+   * // Fetch a single batch
+   * const result = await fetcher.service.fetchTopics({ batchSize: 10 });
    * if (result.success) {
    *   console.log(`Fetched ${result.data.totalFetched} topics`);
+   *   console.log(`Has more: ${result.data.hasMore}`);
+   *   console.log(`Next cursor: ${result.data.nextCursor}`);
    *   result.data.data.forEach(topic => {
    *     console.log(topic.name, topic.description);
    *   });
@@ -373,97 +304,66 @@ export class FetcherService {
    */
   async fetchTopics(options: FetchOptions = {}): AsyncResult<FetchResult<TopicNode>, Error> {
     const {
-      maxItems = 10000, // Topics are relatively few, so set higher limit
       batchSize = 10,
       startCursor,
     } = options;
 
-    this.logger.info('Starting topics fetch', { maxItems, batchSize, startCursor });
+    this.logger.info('Starting topics fetch (single batch)', { batchSize, startCursor });
 
-    const topics: TopicNode[] = [];
-    let cursor = startCursor;
-    let hasMore = true;
-    let totalFetched = 0;
+    const variables: GetTopicsQueryVariables = {
+      first: batchSize,
+      after: startCursor,
+    };
 
-    while (hasMore && totalFetched < maxItems) {
-      const remainingItems = maxItems - totalFetched;
-      const currentBatchSize = Math.min(batchSize, remainingItems);
+    const result = await this.client.topics.getTopics(variables);
 
-      const variables: GetTopicsQueryVariables = {
-        first: currentBatchSize,
-        after: cursor,
-      };
-
-      this.logger.debug('Fetching topics batch', {
-        batchSize: currentBatchSize,
-        cursor,
-        totalFetched
+    if (!result.success) {
+      this.logger.error('Failed to fetch topics batch', {
+        error: result.error.message,
       });
-
-      const result = await this.client.topics.getTopics(variables);
-
-      if (!result.success) {
-        this.logger.error('Failed to fetch topics batch', {
-          error: result.error.message,
-          totalFetched
-        });
-        return failure(result.error);
-      }
-
-      const response = result.data;
-      const batchTopics = response.topics.edges.map(edge => edge.node);
-
-      topics.push(...batchTopics);
-      totalFetched += batchTopics.length;
-
-      hasMore = response.topics.pageInfo.hasNextPage;
-      cursor = response.topics.pageInfo.endCursor || undefined;
-
-      this.logger.debug('Topics batch fetched', {
-        batchCount: batchTopics.length,
-        totalFetched,
-        hasMore,
-        nextCursor: cursor
-      });
-
-      if (batchTopics.length === 0) {
-        hasMore = false;
-      }
+      return failure(result.error);
     }
+
+    const response = result.data;
+    const topics = response.topics.edges.map(edge => edge.node);
+    const hasMore = response.topics.pageInfo.hasNextPage;
+    const nextCursor = response.topics.pageInfo.endCursor || undefined;
 
     const fetchResult: FetchResult<TopicNode> = {
       data: topics,
       hasMore,
-      nextCursor: cursor,
-      totalFetched,
+      nextCursor,
+      totalFetched: topics.length,
     };
 
     this.logger.info('Topics fetch completed', {
       totalFetched: fetchResult.totalFetched,
-      hasMore: fetchResult.hasMore
+      hasMore: fetchResult.hasMore,
+      nextCursor: fetchResult.nextCursor
     });
 
     return success(fetchResult);
   }
 
   /**
-   * Fetches all collections from Product Hunt API
+   * Fetches a single batch of collections from Product Hunt API
    *
-   * Retrieves all available collections from Product Hunt. Collections
-   * represent curated groups of posts and are relatively few in number.
+   * Retrieves one batch of collections from Product Hunt. For fetching multiple batches,
+   * call this method in a loop with the returned nextCursor.
    *
    * @param options - Fetching options for collections
-   * @param options.maxItems - Maximum number of collections to fetch (default: 10000)
-   * @param options.batchSize - Number of collections per API request (default: 50)
+   * @param options.batchSize - Number of collections per API request (default: 10)
    * @param options.startCursor - Cursor to start fetching from (for pagination)
-   * @returns Promise resolving to fetch result with collections data
+   * @returns Promise resolving to fetch result with collections data and pagination info
    *
    * @example
    * ```typescript
-   * // Fetch collections
-   * const result = await fetcher.service.fetchCollections();
+   * // Fetch a single batch
+   * const result = await fetcher.service.fetchCollections({ batchSize: 10 });
    * if (result.success) {
    *   console.log(`Fetched ${result.data.totalFetched} collections`);
+   *   console.log(`Has more: ${result.data.hasMore}`);
+   *   console.log(`Next cursor: ${result.data.nextCursor}`);
    *   result.data.data.forEach(collection => {
    *     console.log(collection.name, collection.description);
    *   });
@@ -472,67 +372,42 @@ export class FetcherService {
    */
   async fetchCollections(options: FetchOptions = {}): AsyncResult<FetchResult<CollectionNode>, Error> {
     const {
-      maxItems = 10000,
       batchSize = 10,
       startCursor,
     } = options;
 
-    this.logger.info('Starting collections fetch', { maxItems, batchSize, startCursor });
+    this.logger.info('Starting collections fetch (single batch)', { batchSize, startCursor });
 
-    const collections: CollectionNode[] = [];
-    let cursor = startCursor;
-    let hasMore = true;
-    let totalFetched = 0;
+    const variables: GetCollectionsQueryVariables = {
+      first: batchSize,
+      after: startCursor,
+    };
 
-    while (hasMore && totalFetched < maxItems) {
-      const remainingItems = maxItems - totalFetched;
-      const currentBatchSize = Math.min(batchSize, remainingItems);
+    const result = await this.client.collections.getCollections(variables);
 
-      const variables: GetCollectionsQueryVariables = {
-        first: currentBatchSize,
-        after: cursor,
-      };
-
-      const result = await this.client.collections.getCollections(variables);
-
-      if (!result.success) {
-        this.logger.error('Failed to fetch collections batch', {
-          error: result.error.message,
-          totalFetched
-        });
-        return failure(result.error);
-      }
-
-      const response = result.data;
-      const batchCollections = response.collections.edges.map(edge => edge.node);
-
-      collections.push(...batchCollections);
-      totalFetched += batchCollections.length;
-
-      hasMore = response.collections.pageInfo.hasNextPage;
-      cursor = response.collections.pageInfo.endCursor || undefined;
-
-      this.logger.debug('Collections batch fetched', {
-        batchCount: batchCollections.length,
-        totalFetched,
-        hasMore
+    if (!result.success) {
+      this.logger.error('Failed to fetch collections batch', {
+        error: result.error.message,
       });
-
-      if (batchCollections.length === 0) {
-        hasMore = false;
-      }
+      return failure(result.error);
     }
+
+    const response = result.data;
+    const collections = response.collections.edges.map(edge => edge.node);
+    const hasMore = response.collections.pageInfo.hasNextPage;
+    const nextCursor = response.collections.pageInfo.endCursor || undefined;
 
     const fetchResult: FetchResult<CollectionNode> = {
       data: collections,
       hasMore,
-      nextCursor: cursor,
-      totalFetched,
+      nextCursor,
+      totalFetched: collections.length,
     };
 
     this.logger.info('Collections fetch completed', {
       totalFetched: fetchResult.totalFetched,
-      hasMore: fetchResult.hasMore
+      hasMore: fetchResult.hasMore,
+      nextCursor: fetchResult.nextCursor
     });
 
     return success(fetchResult);
