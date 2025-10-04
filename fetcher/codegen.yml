@@ -1,8 +1,4 @@
 overwrite: true
-require:
-  - dotenv/config
-dotenv:
-  path: ../.env
 schema:
   - 'https://api.producthunt.com/v2/api/graphql':
       headers:

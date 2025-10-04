@@ -67,3 +67,47 @@ Integrates with MCP (Model Context Protocol) to enable natural language queries 
 ## Important Note
 
 This tool is designed for **local personal use only**. Product Hunt's API terms of service prohibit commercial use, and this repository is provided as open source software for individual analysis and research purposes.
+
+## Setup
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- pnpm (v8 or higher)
+- Product Hunt API token
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/aoki-h-jp/producthunt-mcp-research.git
+   cd producthunt-mcp-research
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+3. **Configure environment variables**
+   
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and **replace** `your_developer_token_here` with your actual Product Hunt API token:
+   ```bash
+   PH_API_TOKEN=your_actual_token_here
+   ```
+   
+   📖 **Get your API token from**: https://api.producthunt.com/v2/oauth/applications
+   
+   ⚠️ **Important**: Make sure to use your actual API token, not the placeholder value!
+
+4. **Build the project**
+   ```bash
+   pnpm run build
+   ```
+
+   ⚠️ **Note**: The build will fail if the `.env` file is not properly configured. Make sure you have set your `PH_API_TOKEN` before running the build command.

@@ -13,8 +13,9 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
-    "codegen": "dotenv -- graphql-codegen --config codegen.yml",
-    "codegen:watch": "dotenv -- graphql-codegen --config codegen.yml --watch",
+    "check-env": "tsx src/scripts/check-env.ts",
+    "codegen": "npm run check-env && dotenv -e ../.env -- graphql-codegen --config codegen.yml",
+    "codegen:watch": "dotenv -e ../.env -- graphql-codegen --config codegen.yml --watch",
     "prebuild": "npm run codegen"
   },
   "keywords": [
@@ -35,6 +36,7 @@
     "@typescript-eslint/parser": "^7.0.0",
     "dotenv-cli": "^10.0.0",
     "eslint": "^8.56.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0"
   },
