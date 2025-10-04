@@ -17,6 +17,7 @@
  * ```
  */
 import type { DatabaseConfig } from '../config/database.js';
+import { getModelSpecificConfig } from '../config/database.js';
 
 /**
  * Entity types supported in the unified collection
@@ -89,10 +90,11 @@ export const COLLECTION_SCHEMA = {
  * Build full Qdrant collection schema with config
  */
 export function buildSchema(config: DatabaseConfig) {
+  const modelConfig = getModelSpecificConfig(config);
   return {
     ...COLLECTION_SCHEMA,
-    vectorSize: config.vectorDimensions,
-    distance: config.distance,
+    vectorSize: modelConfig.vectorDimensions,
+    distance: modelConfig.distance,
   };
 }
 

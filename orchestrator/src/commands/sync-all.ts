@@ -68,9 +68,10 @@ export async function syncAll(
     });
 
     // Initialize cursors for each data type (always use saved cursors for automatic resumption)
-    let topicsCursor: string | undefined = savedCursors?.topics;
-    let collectionsCursor: string | undefined = savedCursors?.collections;
-    let postsCursor: string | undefined = savedCursors?.posts;
+    // Use null for initial cursor (start from beginning), undefined means no more data
+    let topicsCursor: string | null | undefined = savedCursors?.topics ?? null;
+    let collectionsCursor: string | null | undefined = savedCursors?.collections ?? null;
+    let postsCursor: string | null | undefined = savedCursors?.posts ?? null;
 
     let topicsFetched = 0;
     let collectionsFetched = 0;
