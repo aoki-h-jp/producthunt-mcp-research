@@ -1,0 +1,65 @@
+overwrite: true
+require:
+  - dotenv/config
+dotenv:
+  path: ../.env
+schema:
+  - 'https://api.producthunt.com/v2/api/graphql':
+      headers:
+        Authorization: 'Bearer ${PH_API_TOKEN}'
+        User-Agent: 'ph-ingestor/1.0'
+documents: 'src/queries/**/*.ts'
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-graphql-request
+    config:
+      # Scalar type definitions
+      scalars:
+        DateTime: string
+        ID: string
+        Int: number
+        String: string
+        Boolean: boolean
+        Float: number
+
+      # Type naming conventions
+      namingConvention:
+        typeNames: keep
+        enumValues: keep
+        transformUnderscore: true
+
+      # Null permission settings
+      avoidOptionals: false
+      maybeValue: T | null
+      inputMaybeValue: T | null | undefined
+
+      # Other settings
+      skipTypename: false
+      withHooks: false
+      withComponent: false
+      withHOC: false
+
+      # GraphQL Request settings
+      rawRequest: false
+      inlineFragmentTypes: combine
+
+      # TypeScript specific settings
+      useIndexSignature: true
+      immutableTypes: false
+      constEnums: false
+      enumsAsTypes: false
+      futureProofEnums: false
+      futureProofUnions: false
+      onlyOperationTypes: false
+      preResolveTypes: true
+      skipTypeNameForRoot: false
+
+      # Comment generation
+      addDocBlocks: true
+
+      # Export settings
+      exportFragmentSpreadSubTypes: true
+      experimentalFragmentVariables: false

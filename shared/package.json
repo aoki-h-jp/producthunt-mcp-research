@@ -1,0 +1,61 @@
+{
+  "name": "@producthunt-mcp-research/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and types for ph-ingestor",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:embeddings": "node test-embeddings.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "keywords": [
+    "product-hunt",
+    "typescript",
+    "shared",
+    "utilities"
+  ],
+  "author": "aoki-h-jp",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0",
+    "pino-pretty": "^10.3.1"
+  },
+  "dependencies": {
+    "pino": "^8.17.2",
+    "zod": "^3.22.4"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "require": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/src/types/index.js",
+      "require": "./dist/src/types/index.js",
+      "types": "./dist/src/types/index.d.ts"
+    },
+    "./logger": {
+      "import": "./dist/src/logger/index.js",
+      "require": "./dist/src/logger/index.js",
+      "types": "./dist/src/logger/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/src/utils/index.js",
+      "require": "./dist/src/utils/index.js",
+      "types": "./dist/src/utils/index.d.ts"
+    }
+  }
+}

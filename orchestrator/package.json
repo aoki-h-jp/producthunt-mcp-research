@@ -1,0 +1,50 @@
+{
+  "name": "@producthunt-mcp-research/orchestrator",
+  "version": "1.0.0",
+  "description": "Product Hunt data orchestration and scheduling layer",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
+    "sync:all": "node dist/src/cli.js all",
+    "sync:topics": "node dist/src/cli.js topics",
+    "sync:collections": "node dist/src/cli.js collections",
+    "sync:posts": "node dist/src/cli.js posts"
+  },
+  "keywords": [
+    "product-hunt",
+    "orchestrator",
+    "data-sync",
+    "automation"
+  ],
+  "author": "aoki-h-jp",
+  "license": "MIT",
+  "dependencies": {
+    "@producthunt-mcp-research/fetcher": "file:../fetcher",
+    "@producthunt-mcp-research/repository": "file:../repository",
+    "@producthunt-mcp-research/shared": "file:../shared",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

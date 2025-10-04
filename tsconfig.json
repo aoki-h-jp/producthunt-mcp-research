@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    { "path": "./shared" },
+    { "path": "./fetcher" },
+    { "path": "./repository" },
+    { "path": "./orchestrator" }
+  ],
+  "include": [
+    "shared/src/**/*",
+    "fetcher/src/**/*",
+    "repository/src/**/*",
+    "orchestrator/src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}

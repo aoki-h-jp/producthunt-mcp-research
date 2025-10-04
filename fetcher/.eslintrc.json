@@ -1,0 +1,10 @@
+{
+  "extends": ["../shared/.eslintrc.json"],
+  "parserOptions": {
+    "project": true
+  },
+  "ignorePatterns": [
+    "src/generated/**/*",
+    "dist/**/*"
+  ]
+}

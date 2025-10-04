@@ -1,0 +1,7 @@
+# 生成されたファイルはESLintの対象外
+src/generated/
+
+# その他の除外ファイル
+dist/
+node_modules/
+*.d.ts

@@ -1,0 +1,49 @@
+{
+  "name": "@producthunt-mcp-research/fetcher",
+  "version": "1.0.0",
+  "description": "Product Hunt API fetcher module",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src tests --ext .ts",
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "codegen": "dotenv -- graphql-codegen --config codegen.yml",
+    "codegen:watch": "dotenv -- graphql-codegen --config codegen.yml --watch",
+    "prebuild": "npm run codegen"
+  },
+  "keywords": [
+    "product-hunt",
+    "api",
+    "fetcher",
+    "graphql"
+  ],
+  "author": "aoki-h-jp",
+  "license": "MIT",
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.0",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-graphql-request": "^6.0.0",
+    "@graphql-codegen/typescript-operations": "^4.0.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "dotenv-cli": "^10.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  },
+  "dependencies": {
+    "@producthunt-mcp-research/shared": "file:../shared",
+    "dotenv": "^16.3.1",
+    "graphql": "^16.8.1",
+    "graphql-request": "^6.1.0",
+    "graphql-tag": "^2.12.6",
+    "zod": "^3.22.4"
+  }
+}

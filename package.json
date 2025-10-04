@@ -1,0 +1,68 @@
+{
+  "name": "producthunt-mcp-research",
+  "version": "1.0.0",
+  "description": "Product Hunt MCP research platform with AI-powered natural language queries",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "fetcher",
+    "repository",
+    "orchestrator"
+  ],
+  "pnpm": {
+    "overrides": {
+      "sharp": "npm:noop@1.0.0"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run build:shared && pnpm run build:fetcher && pnpm run build:repository && pnpm run build:orchestrator",
+    "build:shared": "pnpm --filter @producthunt-mcp-research/shared run build",
+    "build:fetcher": "pnpm --filter @producthunt-mcp-research/fetcher run build",
+    "build:repository": "pnpm --filter @producthunt-mcp-research/repository run build",
+    "build:orchestrator": "pnpm --filter @producthunt-mcp-research/orchestrator run build",
+    "dev": "pnpm run dev --workspaces --if-present",
+    "clean": "pnpm run clean --workspaces --if-present",
+    "test": "pnpm run test --workspaces --if-present",
+    "lint": "pnpm run lint --workspaces --if-present",
+    "lint:fix": "pnpm run lint:fix --workspaces --if-present",
+    "format": "pnpm run format --workspaces --if-present",
+    "format:check": "pnpm run format:check --workspaces --if-present",
+    "install:all": "pnpm install",
+    "setup": "node orchestrator/dist/src/cli.js setup",
+    "sync:all": "pnpm --filter @producthunt-mcp-research/orchestrator run sync:all",
+    "sync:topics": "pnpm --filter @producthunt-mcp-research/orchestrator run sync:topics",
+    "sync:collections": "pnpm --filter @producthunt-mcp-research/orchestrator run sync:collections",
+    "sync:posts": "pnpm --filter @producthunt-mcp-research/orchestrator run sync:posts",
+    "test:sync": "node orchestrator/dist/src/cli.js posts --max-items=1 --batch-size=1"
+  },
+  "keywords": [
+    "product-hunt",
+    "mcp",
+    "model-context-protocol",
+    "research",
+    "vector-search",
+    "qdrant",
+    "embeddings",
+    "ai-search",
+    "typescript",
+    "monorepo"
+  ],
+  "author": "aoki-h-jp",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "dotenv": "^16.3.1",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+}
