@@ -48,7 +48,7 @@
  * };
  *
  * // Sync all data
- * const result = await syncAll(fetcher, repository, { maxItems: 100 }, logger);
+ * const result = await syncAll(fetcher, repository, { maxItems: 100000 }, logger);
  * ```
  */
 

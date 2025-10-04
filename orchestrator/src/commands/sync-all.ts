@@ -27,7 +27,7 @@ import { CursorManager } from '../utils/cursor-manager.js';
  *
  * @example
  * ```typescript
- * const result = await syncAll(fetcher, repository, { maxItems: 100 }, logger);
+ * const result = await syncAll(fetcher, repository, { maxItems: 100000 }, logger);
  * ```
  */
 export async function syncAll(
@@ -55,7 +55,7 @@ export async function syncAll(
 
     // Balanced sync with cursor management for resumability
     const batchSize = options.batchSize || 5;
-    const maxItems = options.maxItems || 100;
+    const maxItems = options.maxItems || 100000;
     const itemsPerType = Math.floor(maxItems / 3); // Divide equally among 3 data types
 
     logger.info('Balanced sync configuration', {

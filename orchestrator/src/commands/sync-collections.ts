@@ -47,7 +47,7 @@ export async function syncCollections(
 
     let cursor = options.cursor ?? null;
     let hasMore = true;
-    const maxItems = options.maxItems || 10000;
+    const maxItems = options.maxItems || 100000;
     const batchSize = options.batchSize || 10;
     const mapper = new Mapper();
     const cursorManager = new CursorManager(logger);

@@ -91,7 +91,7 @@ async function syncPosts(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 5, maxItems default: 100)
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 5, maxItems default: 100000)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
@@ -126,7 +126,7 @@ async function syncTopics(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 10000)
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 100000)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
@@ -161,7 +161,7 @@ async function syncCollections(
 
 - `fetcher` (`FetcherInstance`) - Fetcher instance
 - `repository` (`OrchestratorRepository`) - Repository wrapper
-- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 10000)
+- `options` (`SyncOptions`, optional) - Sync options (batchSize default: 10, maxItems default: 100000)
 - `logger` (`Logger`) - Logger instance
 
 **Returns:**
@@ -213,7 +213,7 @@ interface SyncOptions {
 **Properties:**
 
 - `batchSize` (optional) - Number of items per API request (default varies by type: topics/collections=10, posts=5)
-- `maxItems` (optional) - Maximum items to fetch (default varies by type)
+- `maxItems` (optional) - Maximum items to fetch (default: 100000)
 - `cursor` (optional) - Cursor for pagination (null = start from beginning, undefined = no cursor)
 - `onProgress` (optional) - Callback for progress updates
 

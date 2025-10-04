@@ -26,7 +26,7 @@ import { CursorManager } from '../utils/cursor-manager.js';
  *
  * @example
  * ```typescript
- * const result = await syncPosts(fetcher, repository, { maxItems: 100 }, logger);
+ * const result = await syncPosts(fetcher, repository, { maxItems: 100000 }, logger);
  * ```
  */
 export async function syncPosts(
@@ -50,7 +50,7 @@ export async function syncPosts(
 
     let cursor = options.cursor ?? null;
     let hasMore = true;
-    const maxItems = options.maxItems || 100;
+    const maxItems = options.maxItems || 100000;
     const batchSize = options.batchSize || 5;
     const mapper = new Mapper();
     const cursorManager = new CursorManager(logger);
