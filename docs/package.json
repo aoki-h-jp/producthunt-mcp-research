@@ -1,0 +1,21 @@
+{
+  "name": "docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.36.0",
+    "@astrojs/vercel": "^8.2.8",
+    "@vercel/og": "^0.8.5",
+    "astro": "^5.6.1",
+    "astro-mermaid": "^1.0.4",
+    "mermaid": "^11.12.0",
+    "sharp": "^0.34.2"
+  }
+}

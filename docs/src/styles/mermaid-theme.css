@@ -1,0 +1,84 @@
+/* CSS for Mermaid dynamic theme switching */
+
+/* Mermaid theme for light mode */
+:root {
+  --mermaid-bg-color: #ffffff;
+  --mermaid-primary-color: #2563eb;
+  --mermaid-secondary-color: #64748b;
+  --mermaid-tertiary-color: #f1f5f9;
+  --mermaid-text-color: #1e293b;
+  --mermaid-line-color: #64748b;
+  --mermaid-node-bg: #f8fafc;
+  --mermaid-node-border: #e2e8f0;
+  --mermaid-subgraph-bg: #f1f5f9;
+  --mermaid-subgraph-border: #cbd5e1;
+}
+
+/* Mermaid theme for dark mode */
+[data-theme="dark"] {
+  --mermaid-bg-color: #0f172a;
+  --mermaid-primary-color: #3b82f6;
+  --mermaid-secondary-color: #94a3b8;
+  --mermaid-tertiary-color: #1e293b;
+  --mermaid-text-color: #f1f5f9;
+  --mermaid-line-color: #64748b;
+  --mermaid-node-bg: #1e293b;
+  --mermaid-node-border: #334155;
+  --mermaid-subgraph-bg: #0f172a;
+  --mermaid-subgraph-border: #475569;
+}
+
+/* Apply styles to Mermaid diagrams */
+.mermaid {
+  background-color: var(--mermaid-bg-color) !important;
+  color: var(--mermaid-text-color) !important;
+}
+
+/* Node styles */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon {
+  fill: var(--mermaid-node-bg) !important;
+  stroke: var(--mermaid-node-border) !important;
+}
+
+/* Text styles */
+.mermaid .nodeLabel,
+.mermaid .edgeLabel {
+  color: var(--mermaid-text-color) !important;
+}
+
+/* Edge (line) styles */
+.mermaid .edgePath .path {
+  stroke: var(--mermaid-line-color) !important;
+}
+
+.mermaid .edgePath .arrowheadPath {
+  fill: var(--mermaid-line-color) !important;
+}
+
+/* Subgraph styles */
+.mermaid .subgraph rect {
+  fill: var(--mermaid-subgraph-bg) !important;
+  stroke: var(--mermaid-subgraph-border) !important;
+}
+
+.mermaid .subgraph .subgraphLabel {
+  color: var(--mermaid-text-color) !important;
+}
+
+/* Accent with primary color */
+.mermaid .node .label {
+  color: var(--mermaid-text-color) !important;
+}
+
+/* Hover effects */
+.mermaid .node:hover rect,
+.mermaid .node:hover circle,
+.mermaid .node:hover ellipse,
+.mermaid .node:hover polygon {
+  stroke: var(--mermaid-primary-color) !important;
+  stroke-width: 2px !important;
+}
+
